@@ -1,5 +1,4 @@
 import serial
-import numpy as np
 from timeout_decorator import timeout, TimeoutError
 import numpy as np
 from scipy.spatial.distance import euclidean
@@ -13,18 +12,19 @@ def serial_read(robo):
 
 #******* マッチング *******#
 def get_dtw_distances(input_data):
-    train_files = glob.glob("./train/*.csv")
+    train_files = sorted(glob.glob("./train/*.csv"))
     distances = []
     
     for train_file in train_files:
         train_data = np.loadtxt(train_file, delimiter=',')
         distance, path = fastdtw(input_data, train_data, dist=euclidean)
         distances.append(distance)
+
     return distances
 
 #******* クラスタリング *******#
 def clustering(distances):
-    return distances.index(min(distances)), min(distances)
+    return distances.index(min(distances)) / 3, min(distances)
 
 #*********** main関数 *************#
 
@@ -34,7 +34,7 @@ if __name__ == '__main__':
     print('try to connect')
     
     try:
-        ser = serial.Serial('/dev/tty.MindstormsEV3-SerialPor', 115200)
+        ser = serial.Serial('/dev/tty.Mindstorms-SerialPortPr', 115200)
             # tty.MindstormsEV3-SerialPor,tty.Mindstorms-SerialPortPr
     except :
         ser = ''
@@ -70,9 +70,9 @@ if __name__ == '__main__':
     number, distance = clustering(distances)
 
     #****** 送信 *******#
-    print('send: ', number)
+    print('send: ', int(number))
     print('distance:', distance)
-    send_data = str(number)
+    send_data = str(int(number))
     ser.write(send_data.encode('ascii'))
     ser.close()
 
