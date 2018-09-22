@@ -4,6 +4,7 @@ import numpy as np
 from scipy.spatial.distance import euclidean
 from fastdtw import fastdtw
 import glob
+from joblib import Parallel, delayed
 
 #*********** Bluetooth イニシャライザ *************#
 @timeout(0.1)
@@ -11,16 +12,10 @@ def serial_read(robo):
     return robo.readline().decode('ascii')
 
 #******* マッチング *******#
-def get_dtw_distances(input_data):
-    train_files = sorted(glob.glob("./train/*.csv"))
-    distances = []
-    
-    for train_file in train_files:
-        train_data = np.loadtxt(train_file, delimiter=',')
-        distance, path = fastdtw(input_data, train_data, dist=euclidean)
-        distances.append(distance)
-
-    return distances
+def get_dtw_distance(train_file, input_data):    
+    train_data = np.loadtxt(train_file, delimiter=',')
+    distance, path = fastdtw(input_data, train_data, dist=euclidean)
+    return distance
 
 #******* クラスタリング *******#
 def clustering(distances):
@@ -41,7 +36,7 @@ if __name__ == '__main__':
 
     input_buffer = [] #データ取得バッファ
 
-    #***** データ取得 *****#
+    # #***** データ取得 *****#
     while True:
         line = ''
         # BlueToothでロボットから送られてくるデータの読み込み
@@ -63,10 +58,11 @@ if __name__ == '__main__':
         else:
             input_buffer.append(int(line))
 
-    #****** 推定 d*******#
+    #****** 推定 *******#
     print('recognition')
+    train_files = sorted(glob.glob("./train/*.csv"))
     input_data = np.array(input_buffer)
-    distances = get_dtw_distances(input_data)
+    distances = Parallel(n_jobs=-1)( [delayed(get_dtw_distance)(train_file, input_data) for train_file in train_files] )
     number, distance = clustering(distances)
 
     #****** 送信 *******#

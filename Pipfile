@@ -9,6 +9,7 @@ numpy = "*"
 fastdtw = "*"
 timeout-decorator = "*"
 scipy = "*"
+joblib = "*"
 
 [dev-packages]
 
